@@ -2,11 +2,6 @@ local lsp = require("lsp-zero")
 
 lsp.preset("recommended")
 
-lsp.ensure_installed({
-  'tsserver',
-  'rust_analyzer',
-})
-
 -- Fix Undefined global 'vim'
 lsp.configure('lua-language-server', {
     settings = {
@@ -18,6 +13,8 @@ lsp.configure('lua-language-server', {
     }
 })
 
+-- Configure mason to install mypy
+require('mason').setup()
 
 local cmp = require('cmp')
 local cmp_select = {behavior = cmp.SelectBehavior.Select}

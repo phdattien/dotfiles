@@ -32,8 +32,7 @@ return require('packer').startup(function(use)
 	use("mbbill/undotree")
 	use("tpope/vim-fugitive")
 	use("tpope/vim-commentary")
-
-
+    -- use("github/copilot.vim")
 
 	use {
 		'VonHeikemen/lsp-zero.nvim',
@@ -58,8 +57,13 @@ return require('packer').startup(function(use)
 		}
 	}
 
-    use {'mfussenegger/nvim-jdtls'}
-    use {'neoclide/coc.nvim', branch = 'release'}
+    use {
+        "supermaven-inc/supermaven-nvim",
+        config = function()
+            require("supermaven-nvim").setup({})
+        end,
+    }
+
 end)
 
 
