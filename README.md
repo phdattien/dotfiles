@@ -9,5 +9,9 @@ Existing files are renamed to `*.bak.<timestamp>`. Config is symlinked into this
 clone, so keep the folder and `git pull` to update.
 
 - `config/nvim`, `config/htop`: symlinked to `~/.config/`
-- `linux/`: tmux.conf (no theme plugin), tmux-sessionizer, gitconfig for the Linux box
+- `linux/`: tmux.conf (no theme plugin), tmux-sessionizer, zshrc (no secrets), gitconfig
 - Top-level dotfiles (`.tmux.conf`, `.zshrc`, `.gitconfig`, ...) are the Mac versions and are not used by `install.sh`
+
+Also installs zsh + oh-my-zsh (and sets it as login shell) and pyenv.
+`./install.sh --with-conda` also installs miniconda.
+Secrets go in `~/.secrets.zsh` (created empty, never committed).
