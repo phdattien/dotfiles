@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Sets up Neovim (same plugins/versions as the Mac) and tmux on a Linux machine.
+# Sets up Neovim 0.12+ (same plugins/versions as the Mac) and tmux on a Linux machine.
 # Safe to re-run. Existing files are renamed to *.bak.<timestamp>.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
-NVIM_VERSION="v0.10.4"
+NVIM_VERSION="v0.12.6"
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33mWARN: %s\033[0m\n' "$*" >&2; }
 
@@ -23,24 +23,22 @@ else
 fi
 for c in git curl gcc make tmux; do command -v "$c" >/dev/null || { echo "ERROR: '$c' is missing, install it and re-run." >&2; exit 1; }; done
 
-# ---------- 2. Neovim (need >= 0.10) ----------
-nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.1[0-9]|v[1-9]'; }
+# ---------- 2. Neovim (need >= 0.12) ----------
+nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.1[2-9]|v[1-9]'; }
 if ! nvim_ok; then
     log "Installing Neovim $NVIM_VERSION"
-    if [[ "$(uname -m)" == "x86_64" ]]; then
-        tmp="$(mktemp -d)"
-        curl -fL "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux64.tar.gz" -o "$tmp/nvim.tar.gz" \
-            || { echo "ERROR: could not download Neovim" >&2; exit 1; }
-        $SUDO rm -rf /opt/nvim-linux64
-        $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz" || exit 1
-        $SUDO ln -sf /opt/nvim-linux64/bin/nvim /usr/local/bin/nvim
-        rm -rf "$tmp"
-    else
-        warn "Not x86_64: installing Neovim from the package manager (may be older than 0.10)"
-        if command -v apt-get >/dev/null; then $SUDO apt-get install -y neovim
-        elif command -v dnf >/dev/null; then $SUDO dnf install -y neovim
-        else $SUDO pacman -S --needed --noconfirm neovim; fi
-    fi
+    case "$(uname -m)" in
+        x86_64)         nvarch="x86_64" ;;
+        aarch64|arm64)  nvarch="arm64" ;;
+        *) echo "ERROR: unsupported CPU $(uname -m)" >&2; exit 1 ;;
+    esac
+    tmp="$(mktemp -d)"
+    curl -fL "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux-$nvarch.tar.gz" -o "$tmp/nvim.tar.gz" \
+        || { echo "ERROR: could not download Neovim" >&2; exit 1; }
+    $SUDO rm -rf "/opt/nvim-linux-$nvarch"
+    $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz" || exit 1
+    $SUDO ln -sf "/opt/nvim-linux-$nvarch/bin/nvim" /usr/local/bin/nvim
+    rm -rf "$tmp"
 fi
 hash -r
 command -v nvim >/dev/null || { echo "ERROR: nvim not installed" >&2; exit 1; }

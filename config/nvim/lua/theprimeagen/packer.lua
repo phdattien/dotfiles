@@ -1,5 +1,5 @@
 -- Plugin list. Every plugin is pinned to the exact commit that is known to work
--- with Neovim 0.10.4 (newer lsp-zero/mason/treesitter releases break this config).
+-- with Neovim 0.10.4 and 0.12.6 (newer lsp-zero/mason/treesitter releases may break this config).
 -- To update: remove the `commit` field(s), run :PackerSync, then re-pin.
 vim.cmd [[packadd packer.nvim]]
 
