@@ -1,16 +1,11 @@
 # dotfiles
 
-## Linux install
-    git clone git@github.com:phdattien/dotfiles.git ~/dotfiles   # or the https URL
+## Linux install (Neovim + tmux only)
+    git clone https://github.com/phdattien/dotfiles.git ~/dotfiles
     cd ~/dotfiles && ./install.sh
 
-Needs internet + sudo; supports apt / dnf / pacman; re-runnable.
-Existing files are renamed to `*.bak.<timestamp>`. Config is symlinked into this
-clone, so keep the folder and `git pull` to update.
-
-- `config/nvim`, `config/htop`: symlinked to `~/.config/`
-- `linux/`: tmux.conf (no theme plugin), tmux-sessionizer, zshrc (no secrets), gitconfig
-- Top-level dotfiles (`.tmux.conf`, `.zshrc`, `.gitconfig`, ...) are the Mac versions and are not used by `install.sh`
-
-Also installs zsh + oh-my-zsh (and sets it as login shell).
-No keys or secrets are stored in this repo.
+Installs Neovim 0.10.4, tmux and what they need, links `config/nvim` -> `~/.config/nvim`,
+`linux/tmux.conf` -> `~/.tmux.conf`, and installs all plugins pinned to the exact
+commits used on the Mac (see `config/nvim/lua/theprimeagen/packer.lua`).
+Re-runnable; existing files are renamed to `*.bak.<timestamp>`.
+Top-level dotfiles (`.zshrc`, `.tmux.conf`, ...) are the Mac versions and are not used.

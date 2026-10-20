@@ -1,51 +1,52 @@
 #!/usr/bin/env bash
-# Installs Neovim + deps and links this config on a Linux machine. Safe to re-run.
-set -euo pipefail
+# Sets up Neovim (same plugins/versions as the Mac) and tmux on a Linux machine.
+# Safe to re-run. Existing files are renamed to *.bak.<timestamp>.
+set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
 NVIM_VERSION="v0.10.4"
-log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33mWARN: %s\033[0m\n' "$*" >&2; }
 
-# ---------- 1. system packages ----------
-log "Installing system packages"
+# ---------- 1. packages (a failure here is not fatal) ----------
+log "Installing packages: git curl tmux ripgrep fzf gcc make unzip xclip nodejs npm"
 if command -v apt-get >/dev/null; then
-    $SUDO apt-get update
-    $SUDO apt-get install -y git curl wget unzip tar gcc g++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 python3-venv zsh
+    $SUDO apt-get update || warn "apt-get update failed"
+    $SUDO apt-get install -y --no-install-recommends git curl ca-certificates tar unzip gcc g++ make ripgrep fzf tmux xclip nodejs npm \
+        || warn "apt install failed. If it mentions linux-image/dpkg, fix with: sudo dpkg --configure -a && sudo apt-get -f install, then re-run"
 elif command -v dnf >/dev/null; then
-    $SUDO dnf install -y git curl wget unzip tar gcc gcc-c++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 zsh
+    $SUDO dnf install -y git curl tar unzip gcc gcc-c++ make ripgrep fzf tmux xclip nodejs npm || warn "dnf install failed"
 elif command -v pacman >/dev/null; then
-    $SUDO pacman -Sy --needed --noconfirm git curl wget unzip tar gcc make ripgrep fd fzf tmux htop xclip nodejs npm python zsh
+    $SUDO pacman -S --needed --noconfirm git curl tar unzip gcc make ripgrep fzf tmux xclip nodejs npm || warn "pacman install failed"
 else
-    echo "Unknown package manager; install git curl gcc make ripgrep fzf tmux nodejs npm manually, then re-run." >&2
-    exit 1
+    warn "Unknown package manager; install git curl gcc make ripgrep fzf tmux nodejs npm manually."
 fi
+for c in git curl gcc make tmux; do command -v "$c" >/dev/null || { echo "ERROR: '$c' is missing, install it and re-run." >&2; exit 1; }; done
 
-# ---------- 2. Neovim (need >= 0.9) ----------
-nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.(9|1[0-9])|v[1-9]'; }
+# ---------- 2. Neovim (need >= 0.10) ----------
+nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.1[0-9]|v[1-9]'; }
 if ! nvim_ok; then
     log "Installing Neovim $NVIM_VERSION"
-    arch="$(uname -m)"
-    if [[ "$arch" == "x86_64" ]]; then
+    if [[ "$(uname -m)" == "x86_64" ]]; then
         tmp="$(mktemp -d)"
-        curl -fL "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux64.tar.gz" -o "$tmp/nvim.tar.gz"
+        curl -fL "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux64.tar.gz" -o "$tmp/nvim.tar.gz" \
+            || { echo "ERROR: could not download Neovim" >&2; exit 1; }
         $SUDO rm -rf /opt/nvim-linux64
-        $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz"
+        $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz" || exit 1
         $SUDO ln -sf /opt/nvim-linux64/bin/nvim /usr/local/bin/nvim
         rm -rf "$tmp"
     else
-        echo "Non-x86_64 CPU: installing neovim from package manager." >&2
+        warn "Not x86_64: installing Neovim from the package manager (may be older than 0.10)"
         if command -v apt-get >/dev/null; then $SUDO apt-get install -y neovim
         elif command -v dnf >/dev/null; then $SUDO dnf install -y neovim
         else $SUDO pacman -S --needed --noconfirm neovim; fi
     fi
 fi
+hash -r
+command -v nvim >/dev/null || { echo "ERROR: nvim not installed" >&2; exit 1; }
 nvim --version | head -1
 
-# fd is called fdfind on Debian/Ubuntu
-mkdir -p "$HOME/.local/bin"
-if command -v fdfind >/dev/null && ! command -v fd >/dev/null; then ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"; fi
-
-# ---------- 3. link config (existing files are backed up) ----------
+# ---------- 3. link config ----------
 link() { # link <src> <dest>
     local src="$1" dest="$2"
     mkdir -p "$(dirname "$dest")"
@@ -55,51 +56,32 @@ link() { # link <src> <dest>
     ln -sfn "$src" "$dest"; echo "linked $dest -> $src"
 }
 log "Linking config"
-link "$HERE/config/nvim"  "$HOME/.config/nvim"
-link "$HERE/config/htop"  "$HOME/.config/htop"
-link "$HERE/linux/tmux.conf"    "$HOME/.tmux.conf"
-link "$HERE/linux/zshrc"       "$HOME/.zshrc"
-mkdir -p "$HOME/.scripts"
+link "$HERE/config/nvim"            "$HOME/.config/nvim"
+link "$HERE/linux/tmux.conf"        "$HOME/.tmux.conf"
 link "$HERE/linux/tmux-sessionizer" "$HOME/.scripts/tmux-sessionizer"
-link "$HERE/linux/tmux-sessionizer" "$HOME/.local/bin/tmux-sessionizer"
-# gitconfig: don't clobber an existing one
-if [[ ! -e "$HOME/.gitconfig" ]]; then link "$HERE/linux/gitconfig" "$HOME/.gitconfig"
-else echo "~/.gitconfig exists, leaving it (see $HERE/linux/gitconfig for aliases)"; fi
-mkdir -p "$HOME/.vim/undodir"
-
-case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *)
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
-    echo 'added ~/.local/bin to PATH in ~/.profile (re-login to apply)';;
-esac
+chmod +x "$HERE/linux/tmux-sessionizer"
+mkdir -p "$HOME/.vim/undodir"   # persistent undo dir used by set.lua
 
 # ---------- 4. tmux plugin manager ----------
 log "Installing tpm + tmux plugins"
 [[ -d "$HOME/.tmux/plugins/tpm" ]] || git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
-"$HOME/.tmux/plugins/tpm/bin/install_plugins" || echo "tmux plugin install failed (non-fatal)"
+"$HOME/.tmux/plugins/tpm/bin/install_plugins" || warn "tmux plugin install failed (non-fatal)"
 
-# ---------- 5. Neovim plugins (packer) ----------
-log "Installing Neovim plugins"
+# ---------- 5. Neovim plugins (packer, pinned to the Mac's versions) ----------
+log "Installing Neovim plugins (takes a few minutes)"
 PACKER="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
 [[ -d "$PACKER" ]] || git clone --depth 1 https://github.com/wbthomason/packer.nvim "$PACKER"
-# first run errors because plugins are missing; that's expected
-nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync' || true
-# install treesitter parsers
-nvim --headless -c 'TSUpdateSync' -c 'quitall' || true
-# second pass to confirm a clean startup
-nvim --headless -c 'quitall' && echo "Neovim starts cleanly."
+# packer.lua is not required from init.lua, so load it explicitly (this defines :PackerSync).
+# Errors printed on this first run are expected: the plugins are not installed yet.
+timeout 900 nvim --headless -c "lua require('theprimeagen.packer')" \
+    -c 'autocmd User PackerComplete quitall' -c 'PackerSync' \
+    || warn "PackerSync did not finish cleanly; open nvim and run :PackerSync"
+echo
+# treesitter parsers
+timeout 600 nvim --headless -c 'TSUpdateSync' -c 'quitall' || true
+echo
+nvim --headless -c 'quitall' && echo "Neovim starts."
 
-# ---------- 6. zsh + oh-my-zsh ----------
-log "Setting up zsh + oh-my-zsh"
-if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-fi
-if [[ "$(basename "${SHELL:-}")" != "zsh" ]]; then
-    chsh -s "$(command -v zsh)" || echo "chsh failed; run: chsh -s $(command -v zsh)"
-fi
-
-# ---------- 7. uv ----------
-log "Installing uv"
-command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-
-log "Done. Open a new terminal, run 'nvim'. Set your terminal font to a Nerd Font for icons."
+log "Done. Run 'nvim' (first start may install LSP servers via Mason) and 'tmux'."
 echo "Supermaven: run :SupermavenUseFree (or log in) inside nvim on first start."
+echo "In tmux, press prefix (Ctrl-a) then I to fetch tmux plugins if any are missing."
