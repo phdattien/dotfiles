@@ -97,5 +97,9 @@ if [[ "$(basename "${SHELL:-}")" != "zsh" ]]; then
     chsh -s "$(command -v zsh)" || echo "chsh failed; run: chsh -s $(command -v zsh)"
 fi
 
+# ---------- 7. uv ----------
+log "Installing uv"
+command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+
 log "Done. Open a new terminal, run 'nvim'. Set your terminal font to a Nerd Font for icons."
 echo "Supermaven: run :SupermavenUseFree (or log in) inside nvim on first start."
