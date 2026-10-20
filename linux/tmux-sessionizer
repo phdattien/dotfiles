@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Pick a project dir with fzf (or take it as $1) and open/switch to a tmux session for it.
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    selected=$(find ~/ ~/projects ~/work ~/.config -mindepth 1 -maxdepth 1 -type d 2>/dev/null | fzf)
+fi
+[[ -z $selected ]] && exit 0
+
+selected_name=$(basename "$selected" | tr . _)
+
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+    tmux new-session -ds "$selected_name" -c "$selected"
+fi
+
+if [[ -z $TMUX ]]; then
+    tmux attach -t "$selected_name"
+else
+    tmux switch-client -t "$selected_name"
+fi
