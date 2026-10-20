@@ -12,6 +12,5 @@ clone, so keep the folder and `git pull` to update.
 - `linux/`: tmux.conf (no theme plugin), tmux-sessionizer, zshrc (no secrets), gitconfig
 - Top-level dotfiles (`.tmux.conf`, `.zshrc`, `.gitconfig`, ...) are the Mac versions and are not used by `install.sh`
 
-Also installs zsh + oh-my-zsh (and sets it as login shell) and pyenv.
-`./install.sh --with-conda` also installs miniconda.
+Also installs zsh + oh-my-zsh (and sets it as login shell).
 Secrets go in `~/.secrets.zsh` (created empty, never committed).

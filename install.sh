@@ -3,7 +3,6 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
-WITH_CONDA=0; [[ "${1:-}" == "--with-conda" ]] && WITH_CONDA=1
 NVIM_VERSION="v0.10.4"
 log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 
@@ -11,13 +10,11 @@ log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 log "Installing system packages"
 if command -v apt-get >/dev/null; then
     $SUDO apt-get update
-    $SUDO apt-get install -y git curl wget unzip tar gcc g++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 python3-venv zsh \
-        build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev
+    $SUDO apt-get install -y git curl wget unzip tar gcc g++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 python3-venv zsh
 elif command -v dnf >/dev/null; then
-    $SUDO dnf install -y git curl wget unzip tar gcc gcc-c++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 zsh \
-        openssl-devel zlib-devel bzip2-devel readline-devel sqlite-devel libffi-devel xz-devel
+    $SUDO dnf install -y git curl wget unzip tar gcc gcc-c++ make ripgrep fd-find fzf tmux htop xclip nodejs npm python3 zsh
 elif command -v pacman >/dev/null; then
-    $SUDO pacman -Sy --needed --noconfirm git curl wget unzip tar gcc make ripgrep fd fzf tmux htop xclip nodejs npm python zsh openssl zlib bzip2 readline sqlite libffi xz
+    $SUDO pacman -Sy --needed --noconfirm git curl wget unzip tar gcc make ripgrep fd fzf tmux htop xclip nodejs npm python zsh
 else
     echo "Unknown package manager; install git curl gcc make ripgrep fzf tmux nodejs npm manually, then re-run." >&2
     exit 1
@@ -102,18 +99,6 @@ fi
 if [[ ! -e "$HOME/.secrets.zsh" ]]; then
     printf '# export NFBX_API_KEY=...\n' > "$HOME/.secrets.zsh"; chmod 600 "$HOME/.secrets.zsh"
     echo "created ~/.secrets.zsh - put NFBX_API_KEY there (not in git)"
-fi
-
-# ---------- 7. pyenv (+ virtualenv plugin) ----------
-log "Installing pyenv"
-[[ -d "$HOME/.pyenv" ]] || git clone --depth 1 https://github.com/pyenv/pyenv.git "$HOME/.pyenv"
-[[ -d "$HOME/.pyenv/plugins/pyenv-virtualenv" ]] || git clone --depth 1 https://github.com/pyenv/pyenv-virtualenv.git "$HOME/.pyenv/plugins/pyenv-virtualenv"
-
-# ---------- 8. miniconda (optional: ./install.sh --with-conda) ----------
-if [[ $WITH_CONDA -eq 1 && ! -d "$HOME/miniconda3" ]]; then
-    log "Installing miniconda"
-    curl -fsSL "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh" -o /tmp/miniconda.sh
-    bash /tmp/miniconda.sh -b -p "$HOME/miniconda3" && rm /tmp/miniconda.sh
 fi
 
 log "Done. Open a new terminal, run 'nvim'. Set your terminal font to a Nerd Font for icons."
