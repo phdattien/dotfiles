@@ -96,10 +96,6 @@ fi
 if [[ "$(basename "${SHELL:-}")" != "zsh" ]]; then
     chsh -s "$(command -v zsh)" || echo "chsh failed; run: chsh -s $(command -v zsh)"
 fi
-if [[ ! -e "$HOME/.secrets.zsh" ]]; then
-    printf '# export NFBX_API_KEY=...\n' > "$HOME/.secrets.zsh"; chmod 600 "$HOME/.secrets.zsh"
-    echo "created ~/.secrets.zsh - put NFBX_API_KEY there (not in git)"
-fi
 
 log "Done. Open a new terminal, run 'nvim'. Set your terminal font to a Nerd Font for icons."
 echo "Supermaven: run :SupermavenUseFree (or log in) inside nvim on first start."
