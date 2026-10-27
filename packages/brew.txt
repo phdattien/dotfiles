@@ -6,3 +6,4 @@ ripgrep
 fzf
 node
 uv
+jq

@@ -13,3 +13,4 @@ fzf
 xclip
 nodejs
 npm
+jq

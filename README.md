@@ -24,3 +24,7 @@ htop rewrites its config file, so link it with `PACKAGES=htop ./bootstrap link` 
 - New dotfile: put it under `stow/<package>/` at its path relative to `$HOME`, run `./bootstrap link`.
 - Claude Code skill/command/agent: add it under `stow/claude/.claude/{skills,commands,agents}/`, commit, run `./bootstrap link` on each machine.
   Only those paths are linked, never all of `~/.claude` (it holds history and credentials).
+- Claude Code hooks: scripts live in `stow/claude/.claude/hooks/` and are registered in `packages/claude-settings.json`,
+  which `bootstrap link` deep-merges into the untracked `~/.claude/settings.json` (machine-specific keys stay there).
+  Currently `bash-safety-guard.sh` (blocks recursive force deletes, sudo, destructive SQL and docker cleanup, forced kills)
+  and `git-guard.sh` (blocks pushes, hard resets, forced cleans, bulk staging, forced branch deletes). Both need `jq`.

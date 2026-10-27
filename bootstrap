@@ -85,6 +85,26 @@ backup_conflicts() {
     done < <(find "$HERE/stow/$pkg" -type f -print0)
 }
 
+# ~/.claude/settings.json holds machine-specific keys, so it is not symlinked. Deep-merge the
+# shared bits (hooks) from packages/claude-settings.json into it instead (arrays are replaced).
+merge_claude_settings() {
+    [[ " $PACKAGES " == *" claude "* ]] || return 0
+    command -v jq >/dev/null || { warn "jq missing; Claude Code hooks not configured"; return 0; }
+    local dest="$HOME/.claude/settings.json" tmp
+    mkdir -p "$HOME/.claude"
+    [[ -s $dest ]] || echo '{}' > "$dest"
+    tmp="$(mktemp)"
+    if jq -s '.[0] * .[1]' "$dest" "$HERE/packages/claude-settings.json" > "$tmp"; then
+        if ! cmp -s "$tmp" "$dest"; then
+            mkdir -p "$BACKUP/.claude"; cp "$dest" "$BACKUP/.claude/settings.json"
+            cat "$tmp" > "$dest"; echo "merged shared Claude Code settings into ~/.claude/settings.json"
+        fi
+    else
+        warn "could not merge Claude Code settings (is $dest valid JSON?)"
+    fi
+    rm -f "$tmp"
+}
+
 step_link() {
     log "Linking: $PACKAGES"
     for pkg in $PACKAGES; do
@@ -93,7 +113,8 @@ step_link() {
         # --no-folding: link files, not directories, so apps can write caches next to their config.
         stow --no-folding --ignore='\.gitkeep' -d "$HERE/stow" -t "$HOME" -R "$pkg" || warn "stow failed for $pkg"
     done
-    chmod +x "$HERE/stow/tmux/.scripts/tmux-sessionizer" 2>/dev/null
+    chmod +x "$HERE/stow/tmux/.scripts/tmux-sessionizer" "$HERE"/stow/claude/.claude/hooks/*.sh 2>/dev/null
+    merge_claude_settings
     mkdir -p "$HOME/.vim/undodir"   # persistent undo dir used by set.lua
 
     if [[ ! -e $HOME/.gitconfig.local ]]; then
