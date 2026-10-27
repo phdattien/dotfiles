@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Personal dotfiles for Pham Tien Dat (GitHub: `phdattien/dotfiles`, cloned to `~/dotfiles`).
+Personal dotfiles for Pham Tien Dat (GitHub: `phdattien/dotfiles`, cloned to `~/.dotfiles`).
 
 ## Layout
 - `bootstrap` — entry point (macOS + Linux). Steps: `packages tools link plugins shell`; idempotent. Linux gets Neovim v0.12.6 in `/opt`; macOS uses brew.
@@ -19,4 +19,4 @@ Personal dotfiles for Pham Tien Dat (GitHub: `phdattien/dotfiles`, cloned to `~/
 
 ## Testing changes
 - Neovim: `nvim --headless -c 'quitall'` must exit cleanly.
-- Bootstrap: `bash -n bootstrap`, then test Linux in a clean container, e.g. `docker run --rm -v "$PWD":/src:ro ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq git && cp -r /src /root/dotfiles && /root/dotfiles/bootstrap'`. Don't test linking by running it on the main machine unless you want the files replaced (backups go to `~/.dotfiles-backup-*`).
+- Bootstrap: `bash -n bootstrap`, then test Linux in a clean container, e.g. `docker run --rm -v "$PWD":/src:ro ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq git && cp -r /src /root/.dotfiles && /root/.dotfiles/bootstrap'`. Don't test linking by running it on the main machine unless you want the files replaced (backups go to `~/.dotfiles-backup-*`).

@@ -2,7 +2,7 @@
 
 macOS and Linux (apt/dnf/pacman). zsh, tmux, git, Neovim and Claude Code config, one command.
 
-    git clone https://github.com/phdattien/dotfiles.git ~/dotfiles && ~/dotfiles/bootstrap
+    git clone https://github.com/phdattien/dotfiles.git ~/.dotfiles && ~/.dotfiles/bootstrap
 
 `bootstrap` installs packages, Neovim 0.12 (Linux), oh-my-zsh and uv, symlinks configs with
 [GNU Stow](https://www.gnu.org/software/stow/), then syncs tmux and Neovim plugins (pinned commits).
