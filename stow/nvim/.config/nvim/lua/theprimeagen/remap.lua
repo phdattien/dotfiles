@@ -52,3 +52,7 @@ vim.api.nvim_create_autocmd("FileType", { pattern = "cpp",
 -- -- autocmd filetype cpp nnoremap <F10> :!%:r<CR>
 
 
+
+-- claudecode.nvim: send exact selection / file to Claude running in tmux
+vim.keymap.set("v", "<C-l>", "<cmd>ClaudeCodeSend<CR>")
+vim.keymap.set("n", "<leader>ca", "<cmd>ClaudeCodeAdd %<CR>")

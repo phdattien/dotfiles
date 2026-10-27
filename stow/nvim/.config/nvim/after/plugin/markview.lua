@@ -1,6 +1,6 @@
 require("markview").setup({
     preview = {
-        icon_provider = "internal",
+        icon_provider = "devicons",
         enable = false,
     },
 })

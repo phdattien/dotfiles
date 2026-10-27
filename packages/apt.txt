@@ -1,0 +1,16 @@
+git
+curl
+ca-certificates
+tar
+unzip
+gcc
+g++
+make
+stow
+tmux
+zsh
+ripgrep
+fzf
+xclip
+nodejs
+npm

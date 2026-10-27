@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Sets up this machine from the dotfiles repo. macOS (brew) and Linux (apt/dnf/pacman).
+# Idempotent: safe to re-run. Usage: ./bootstrap [step ...]
+# Steps: packages tools link plugins shell   (default: all)
+# Env:   PACKAGES="zsh tmux git nvim claude"  stow packages to link (default below)
+set -uo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OS="$(uname -s)"
+SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
+NVIM_VERSION="v0.12.6"
+PACKAGES="${PACKAGES:-zsh tmux git nvim claude}"
+BACKUP="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
+log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33mWARN: %s\033[0m\n' "$*" >&2; }
+die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
+
+pkg_list() { grep -v '^\s*\(#\|$\)' "$HERE/packages/$1.txt"; }
+
+step_packages() {
+    log "Installing packages"
+    if [[ $OS == Darwin ]]; then
+        if ! command -v brew >/dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || die "Homebrew install failed"
+            eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
+        fi
+        pkg_list brew | xargs brew install || warn "brew install had failures"
+    elif command -v apt-get >/dev/null; then
+        $SUDO apt-get update || warn "apt-get update failed"
+        pkg_list apt | xargs $SUDO apt-get install -y --no-install-recommends \
+            || warn "apt install failed (if it mentions dpkg: sudo dpkg --configure -a && sudo apt-get -f install)"
+    elif command -v dnf >/dev/null; then
+        pkg_list dnf | xargs $SUDO dnf install -y || warn "dnf install failed"
+    elif command -v pacman >/dev/null; then
+        pkg_list pacman | xargs $SUDO pacman -S --needed --noconfirm || warn "pacman install failed"
+    else
+        warn "Unknown package manager; install the tools in packages/*.txt manually."
+    fi
+    for c in git curl stow tmux zsh; do command -v "$c" >/dev/null || die "'$c' is missing, install it and re-run."; done
+}
+
+nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.1[2-9]|v[1-9]'; }
+
+step_tools() {
+    # Neovim >= 0.12 on Linux (distro packages are too old). On macOS brew provides it.
+    if [[ $OS == Linux ]] && ! nvim_ok; then
+        log "Installing Neovim $NVIM_VERSION"
+        case "$(uname -m)" in
+            x86_64) nvarch=x86_64 ;;
+            aarch64|arm64) nvarch=arm64 ;;
+            *) die "unsupported CPU $(uname -m)" ;;
+        esac
+        tmp="$(mktemp -d)"
+        curl -fL "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux-$nvarch.tar.gz" -o "$tmp/nvim.tar.gz" \
+            || die "could not download Neovim"
+        $SUDO rm -rf "/opt/nvim-linux-$nvarch"
+        $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz" || die "could not unpack Neovim"
+        $SUDO ln -sf "/opt/nvim-linux-$nvarch/bin/nvim" /usr/local/bin/nvim
+        rm -rf "$tmp"
+    fi
+    command -v nvim >/dev/null || die "nvim not installed"
+    nvim --version | head -1
+
+    if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+        log "Installing oh-my-zsh"
+        RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
+            || warn "oh-my-zsh install failed"
+    fi
+    if ! command -v uv >/dev/null; then
+        log "Installing uv"
+        curl -LsSf https://astral.sh/uv/install.sh | sh || warn "uv install failed"
+    fi
+}
+
+# Move any real file that would collide with a stow link into $BACKUP.
+backup_conflicts() {
+    local pkg="$1" rel dest
+    while IFS= read -r -d '' f; do
+        rel="${f#"$HERE/stow/$pkg/"}"
+        dest="$HOME/$rel"
+        [[ $(basename "$rel") == .gitkeep ]] && continue
+        if [[ -e $dest || -L $dest ]] && [[ "$(readlink -f "$dest")" != "$(readlink -f "$f")" ]]; then
+            mkdir -p "$BACKUP/$(dirname "$rel")"
+            mv "$dest" "$BACKUP/$rel" && echo "backed up ~/$rel -> $BACKUP/$rel"
+        fi
+    done < <(find "$HERE/stow/$pkg" -type f -print0)
+}
+
+step_link() {
+    log "Linking: $PACKAGES"
+    for pkg in $PACKAGES; do
+        [[ -d $HERE/stow/$pkg ]] || { warn "no such package: $pkg"; continue; }
+        backup_conflicts "$pkg"
+        # --no-folding: link files, not directories, so apps can write caches next to their config.
+        stow --no-folding --ignore='\.gitkeep' -d "$HERE/stow" -t "$HOME" -R "$pkg" || warn "stow failed for $pkg"
+    done
+    chmod +x "$HERE/stow/tmux/.scripts/tmux-sessionizer" 2>/dev/null
+    mkdir -p "$HOME/.vim/undodir"   # persistent undo dir used by set.lua
+
+    if [[ ! -e $HOME/.gitconfig.local ]]; then
+        log "Creating ~/.gitconfig.local (git identity for this machine)"
+        local name="" email=""
+        if [[ -t 0 ]]; then
+            read -r -p "git user.name:  " name
+            read -r -p "git user.email: " email
+        fi
+        printf '[user]\n\tname = %s\n\temail = %s\n' "${name:-CHANGE ME}" "${email:-change@me}" > "$HOME/.gitconfig.local"
+    fi
+    [[ -d $BACKUP ]] && echo "Replaced files were saved in $BACKUP"
+}
+
+step_plugins() {
+    log "tmux plugins"
+    [[ -d $HOME/.tmux/plugins/tpm ]] || git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+    "$HOME/.tmux/plugins/tpm/bin/install_plugins" || warn "tmux plugin install failed (non-fatal)"
+
+    log "Neovim plugins (packer, pinned commits; takes a few minutes)"
+    local packer="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
+    [[ -d $packer ]] || git clone --depth 1 https://github.com/wbthomason/packer.nvim "$packer"
+    # packer.lua is not required from init.lua, so load it explicitly to define :PackerSync.
+    timeout 900 nvim --headless -c "lua require('theprimeagen.packer')" \
+        -c 'autocmd User PackerComplete quitall' -c 'PackerSync' \
+        || warn "PackerSync did not finish cleanly; open nvim and run :PackerSync"
+    echo
+    timeout 600 nvim --headless -c 'TSUpdateSync' -c 'quitall' || true
+    echo
+    nvim --headless -c 'quitall' && echo "Neovim starts."
+}
+
+step_shell() {
+    local zsh_path; zsh_path="$(command -v zsh)" || return 0
+    if [[ ${SHELL:-} != "$zsh_path" && -t 0 ]]; then
+        log "Setting zsh as the login shell"
+        grep -qx "$zsh_path" /etc/shells || echo "$zsh_path" | $SUDO tee -a /etc/shells >/dev/null
+        chsh -s "$zsh_path" || warn "chsh failed; run: chsh -s $zsh_path"
+    fi
+}
+
+steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(packages tools link plugins shell)
+for s in "${steps[@]}"; do
+    case "$s" in
+        packages|tools|link|plugins|shell) "step_$s" ;;
+        *) die "unknown step '$s' (packages tools link plugins shell)" ;;
+    esac
+done
+
+log "Done."
+cat <<'EOF'
+Manual steps left:
+  - SSH key + `gh auth login`
+  - Claude Code login; Supermaven: :SupermavenUseFree inside nvim
+  - Secrets / machine-specific env vars: ~/.zshrc.local (not tracked)
+  - tmux: prefix (Ctrl-a) then I fetches plugins if any are missing
+EOF

@@ -1,0 +1,15 @@
+git
+curl
+tar
+unzip
+gcc
+gcc-c++
+make
+stow
+tmux
+zsh
+ripgrep
+fzf
+xclip
+nodejs
+npm

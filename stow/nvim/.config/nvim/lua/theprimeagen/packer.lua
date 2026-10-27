@@ -62,5 +62,18 @@ return require('packer').startup(function(use)
         end,
     }
 
-    use { "OXY2DEV/markview.nvim", commit = '190bb227c9d3eb4451b81fa16ea3d2efde2d67c5' }
+    use {
+        "coder/claudecode.nvim",
+        commit = 'c0deb41a0c6ac74c620be0a683aa9834e535c84a',
+        config = function()
+            -- Claude runs in a tmux pane; the plugin only provides the IDE bridge
+            require("claudecode").setup({ terminal = { provider = "none" } })
+        end,
+    }
+
+    use {
+        "OXY2DEV/markview.nvim",
+        commit = '190bb227c9d3eb4451b81fa16ea3d2efde2d67c5',
+        requires = { { "nvim-tree/nvim-web-devicons", commit = 'ec309a0eaff6ea967e58c275996155ab5c16938d' } },
+    }
 end)

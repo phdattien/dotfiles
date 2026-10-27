@@ -1,0 +1,8 @@
+git
+stow
+tmux
+neovim
+ripgrep
+fzf
+node
+uv
