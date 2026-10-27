@@ -1,0 +1,2 @@
+# one plugin per line: name@marketplace
+mattpocock-skills@claude-plugins-official

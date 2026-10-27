@@ -105,6 +105,16 @@ merge_claude_settings() {
     rm -f "$tmp"
 }
 
+# Claude Code plugins (needs the `claude` CLI; skipped with a note if it is not installed yet).
+install_claude_plugins() {
+    [[ " $PACKAGES " == *" claude "* ]] || return 0
+    command -v claude >/dev/null || { echo "claude CLI not found; later run: ./bootstrap link"; return 0; }
+    local plugin
+    while read -r plugin; do
+        claude plugin install "$plugin" </dev/null || warn "could not install Claude plugin $plugin"
+    done < <(grep -v '^\s*\(#\|$\)' "$HERE/packages/claude-plugins.txt")
+}
+
 step_link() {
     log "Linking: $PACKAGES"
     for pkg in $PACKAGES; do
@@ -115,6 +125,7 @@ step_link() {
     done
     chmod +x "$HERE/stow/tmux/.scripts/tmux-sessionizer" "$HERE"/stow/claude/.claude/hooks/*.sh 2>/dev/null
     merge_claude_settings
+    install_claude_plugins
     mkdir -p "$HOME/.vim/undodir"   # persistent undo dir used by set.lua
 
     if [[ ! -e $HOME/.gitconfig.local ]]; then
