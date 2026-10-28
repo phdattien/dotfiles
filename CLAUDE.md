@@ -4,7 +4,7 @@ Personal dotfiles for Pham Tien Dat (GitHub: `phdattien/dotfiles`, cloned to `~/
 
 ## Layout
 - `bootstrap` — entry point (macOS + Linux). Steps: `packages tools link plugins shell`; idempotent. Linux gets Neovim v0.12.6 in `/opt`; macOS uses brew.
-- `stow/<package>/` mirrors `$HOME` and is linked with `stow --no-folding`: `zsh`, `tmux`, `git`, `nvim` (`.config/nvim`), `claude` (`.claude/{skills,commands,agents}` only), `htop` (opt-in).
+- `stow/<package>/` mirrors `$HOME` and is linked with `stow --no-folding`: `zsh`, `tmux`, `git`, `nvim` (`.config/nvim`), `claude` (`.claude/{skills,commands,agents,hooks}` and `statusline.sh` only), `htop` (opt-in).
 - `packages/{brew,apt,dnf,pacman}.txt` — package lists, one per line.
 - Neovim config: `lua/theprimeagen/{init,set,remap,packer}.lua`, per-plugin setup in `after/plugin/*.lua`. `packer.lua` pins every plugin to a commit and is NOT required from `init.lua`; `bootstrap` loads it explicitly to define `:PackerSync`.
 - Claude Code hooks (`bash-safety-guard.sh`, `git-guard.sh`): scripts in `stow/claude/.claude/hooks/`, registered via `packages/claude-settings.json`, which `bootstrap link` jq-merges into the untracked `~/.claude/settings.json`. They are live in Claude sessions and also block Bash commands whose text merely contains a guarded phrase, so write such text with the Write/Edit tools.

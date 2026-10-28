@@ -90,7 +90,7 @@ backup_conflicts() {
 }
 
 # ~/.claude/settings.json holds machine-specific keys, so it is not symlinked. Deep-merge the
-# shared bits (hooks) from packages/claude-settings.json into it instead (arrays are replaced).
+# shared bits (hooks, status line) from packages/claude-settings.json into it instead (arrays are replaced).
 merge_claude_settings() {
     [[ " $PACKAGES " == *" claude "* ]] || return 0
     command -v jq >/dev/null || { warn "jq missing; Claude Code hooks not configured"; return 0; }
