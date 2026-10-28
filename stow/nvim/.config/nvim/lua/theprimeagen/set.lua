@@ -1,5 +1,8 @@
 vim.opt.guicursor = "" 
 
+-- Neovim 0.13 opens directories in its own read-only browser; use netrw like `:Ex` does.
+vim.g.loaded_nvim_dir_plugin = 1
+
 vim.opt.nu = true    
 vim.opt.relativenumber = true    
 

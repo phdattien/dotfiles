@@ -1,3 +1,11 @@
+-- lsp-zero v1 uses the old require('lspconfig') setup. It still works with the pinned
+-- nvim-lspconfig commit, but warns on every start; hide only that warning.
+local deprecate = vim.deprecate
+vim.deprecate = function(name, ...)
+    if name:find("require%('lspconfig'%)") then return end
+    return deprecate(name, ...)
+end
+
 local lsp = require("lsp-zero")
 
 lsp.preset("recommended")
