@@ -38,10 +38,12 @@ step_packages() {
     for c in git curl stow tmux zsh; do command -v "$c" >/dev/null || die "'$c' is missing, install it and re-run."; done
 }
 
-nvim_ok() { command -v nvim >/dev/null && nvim --version | head -1 | grep -qE 'v0\.1[2-9]|v[1-9]'; }
+# Exactly the pinned stable release: plugins are pinned against it, and nightlies
+# (e.g. ppa:neovim-ppa/unstable) break the old nvim-treesitter.
+nvim_ok() { command -v nvim >/dev/null && [[ "$(nvim --version | head -1)" == "NVIM $NVIM_VERSION" ]]; }
 
 step_tools() {
-    # Neovim >= 0.12 on Linux (distro packages are too old). On macOS brew provides it.
+    # Pinned Neovim on Linux (distro packages are too old or nightly). On macOS brew provides it.
     if [[ $OS == Linux ]] && ! nvim_ok; then
         log "Installing Neovim $NVIM_VERSION"
         case "$(uname -m)" in
@@ -56,6 +58,8 @@ step_tools() {
         $SUDO tar -C /opt -xzf "$tmp/nvim.tar.gz" || die "could not unpack Neovim"
         $SUDO ln -sf "/opt/nvim-linux-$nvarch/bin/nvim" /usr/local/bin/nvim
         rm -rf "$tmp"
+        hash -r
+        nvim_ok || warn "nvim on PATH is $(nvim --version | head -1), not $NVIM_VERSION; put /usr/local/bin first or remove the other nvim"
     fi
     command -v nvim >/dev/null || die "nvim not installed"
     nvim --version | head -1
