@@ -1,6 +1,10 @@
 -- Plugin list. Every plugin is pinned to the exact commit that is known to work
 -- with Neovim 0.10.4 and 0.12.6 (newer lsp-zero/mason/treesitter releases may break this config).
 -- To update: remove the `commit` field(s), run :PackerSync, then re-pin.
+
+-- packer.nvim (unmaintained) calls vim.tbl_islist, which Neovim 0.13 removed.
+vim.tbl_islist = vim.tbl_islist or vim.islist
+
 vim.cmd [[packadd packer.nvim]]
 
 return require('packer').startup(function(use)

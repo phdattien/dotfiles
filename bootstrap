@@ -149,8 +149,10 @@ step_plugins() {
     local packer="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
     [[ -d $packer ]] || git clone --depth 1 https://github.com/wbthomason/packer.nvim "$packer"
     # packer.lua is not required from init.lua, so load it explicitly to define :PackerSync.
+    # If PackerSync errors, PackerComplete never fires: exit at once instead of waiting for the timeout.
     timeout 900 nvim --headless -c "lua require('theprimeagen.packer')" \
-        -c 'autocmd User PackerComplete quitall' -c 'PackerSync' \
+        -c 'autocmd User PackerComplete quitall' \
+        -c 'lua local ok, err = pcall(vim.cmd, "PackerSync"); if not ok then io.stderr:write(err, "\n"); vim.cmd("cquit") end' \
         || warn "PackerSync did not finish cleanly; open nvim and run :PackerSync"
     echo
     timeout 600 nvim --headless -c 'TSUpdateSync' -c 'quitall' || true
