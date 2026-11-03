@@ -12,7 +12,7 @@ return require('packer').startup(function(use)
     use { 'wbthomason/packer.nvim', commit = 'ea0cc3c59f67c440c5ff0bbe4fb9420f4350b9a3' }
 
     use {
-        'nvim-telescope/telescope.nvim', commit = 'd90956833d7c27e73c621a61f20b29fdb7122709',
+        'nvim-telescope/telescope.nvim', commit = 'a0bbec21143c7bc5f8bb02e0005fa0b982edc026',
         requires = { { 'nvim-lua/plenary.nvim', commit = '74b06c6c75e4eeb3108ec01852001636d85a932b' } }
     }
 
